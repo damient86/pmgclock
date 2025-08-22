@@ -4,4 +4,4 @@ It was shipped to Australia in 1954 and in November of that year the transition 
 
 A very special thankyou to github.com/paulseward whose recordings for their asterisk-tim formed the basis of this project and are an important historical record.
 
-Inspired greatly by Ryan Monro's 1194online project which uses the voice of Richard Peach form the 1990 electronic replacement.
+Inspired greatly by Ryan Monro's 1194online project which uses the voice of Richard Peach from the 1990 electronic replacement.
