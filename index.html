@@ -8,15 +8,17 @@
   <style>
     :root { --gap: 12px; }
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, sans-serif; margin: 24px; }
-    .card { max-width: 600px; border: 1px solid #e5e7eb; border-radius: 16px; padding: 20px; box-shadow: 0 6px 24px rgba(0,0,0,.06); }
-    h1 { margin: 0 0 12px; font-size: 20px; }
-    .row { display: flex; gap: var(--gap); align-items: center; margin: 10px 0; }
+    .card { max-width: 600px; border: 1px solid #e5e7eb; border-radius: 16px; padding: 20px; box-shadow: 0 6px 24px rgba(0,0,0,.06); text-align: center; }
+    h1 { margin: 0 0 12px; font-size: 20px; text-align: center; }
+    .row { display: flex; justify-content: center; gap: var(--gap); align-items: center; margin: 10px 0; }
     button { padding: 10px 14px; border-radius: 10px; border: 1px solid #111827; background: #fff; cursor: pointer; }
     button[disabled] { opacity: .5; cursor: not-allowed; }
     .muted { color: #6b7280; font-size: 14px; margin-bottom: 12px; }
+    #liveClock { font-size: 18px; font-weight: bold; margin: 8px 0 16px; }
+    details.log-container { margin-top: 16px; text-align: left; }
+    details summary { cursor: pointer; font-size: 14px; color: #6b7280; margin-bottom: 8px; }
     .log { background: #0b1020; color: #c9d1d9; padding: 10px 12px; border-radius: 10px; height: 200px; overflow: auto; font-size: 12px; }
-	
-.info-card {
+	.info-card {
   max-width: 720px;
   border: 1px solid #e5e7eb;
   border-radius: 16px;
@@ -114,81 +116,94 @@ blockquote {
     <h1>PMG Talking Clock</h1>
     <p class="muted">This is a recreation of the original PMG talking clock used in Australia between 1954 and 1990 which featured the voice of Gordon Gow optically reproduced from glass disks.</p>
 
+    <!-- Live Clock -->
+    <div id="liveClock"></div>
+
     <div class="row">
       <button id="startBtn" disabled>Start</button>
       <button id="stopBtn" disabled>Stop</button>
       <button id="onceBtn" disabled>Say once now</button>
     </div>
 
-    <div class="log" id="log"></div>
+    <!-- Collapsible log -->
+    <details class="log-container">
+      <summary>Click to expand log</summary>
+      <div class="log" id="log"></div>
+    </details>
   </div>
 
- <div class="info-card">
-  <h2>About the clock</h2>
-  <div class="info-meta" aria-hidden="true"></div>
-
-  <p class="lead">
-    This is a recreation of the original Australian Postmaster General talking clock, often colloquially known as '<i>George</i>' but officially the
-    <b>Speaking Clock MK II</b> designed by the British Post Office Engineering Department and manufactured by the Telephone Manufacturing Company Ltd, London.
-  </p>
-<div class="figure">
-  <img src="Speakingclock.jfif" alt="PMG Speaking Clock machine">
-  <div class="figcaption">Image of the mechanical speaking clock — from Wikipedia</div>
-</div>
-  <p>
-    It was shipped to Australia in 1954 and in November of that year the transition was made from human operators who had been announcing the time manually in 30 minute shifts.
-    These machines continued to operate 24 hours a day, 7 days a week until thier replacement by a digital equivalent on September 12, 1990.
-    The time service was permanently ended on October 1st, 2019.
-  </p>
-
-  <div class="hr-dots" aria-hidden="true">* * *</div>
-
-  <div class="info-section-title">Information regarding the collection of the recordings and a fault with the source audio:</div>
-  <blockquote>
-    These recordings were made from the prototype speaking clock machine, held by the London Science Museum. The original machine stores the audio on glass disks, in a seies of concentric tracks of varying brightness. Much like how audio is stored on cine film.
-    <br><br>
-    The Minutes disk is slightly off-centre, and at some points on the disk the sensor picks up some of the adjacent track. In most cases this bleed through is inaudible, but it is prominent on some recordings. Most notably on the nine.
-    <br><br>
-    <i>From <a href="https://github.com/paulseward/asterisk-tim/" target="_blank">paulseward/asterisk-tim</a></i>
-  </blockquote>
-
-  <div class="hr-dots" aria-hidden="true">* * *</div>
-
-  <p>
-    A very special thankyou to
-    <a href="https://github.com/paulseward/" target="_blank">github.com/paulseward</a>
-    whose recordings for their
-    <a href="https://github.com/paulseward/asterisk-tim/" target="_blank">asterisk-tim</a>
-    formed the basis of this project and are an important historical record.
-  </p>
-
-  <ul class="info-links">
-    <li>
-      <a href="https://www.nfsa.gov.au/media/oembed?url=https%3A//vimeo.com/1035828268%3Fshare%3Dcopy%23t%3D0&max_width=760&max_height=426&hash=mktvY7PVODJS4VahZiSg1XJBXMtrZEnDuyDJJ38LZf0" target="_blank">
-        A 5 minute film from 1955 about the installation of the new clock, hosted by the Australian National Film and Sound Achive
-      </a>
-    </li>
-    <li>
-      <a href="https://collection.sciencemuseumgroup.org.uk/objects/co33313/speaking-clock-prototype-mk-ii-speaking-clock" target="_blank">
-        The London Science Museum page about the exact machine these recordings were made from.
-      </a>
-    </li>
-	<li>
-      <a href="https://en.wikipedia.org/wiki/Speaking_clock#Australia" target="_blank">
-        Wikipedia page about the speaking clocks, link goes directly to Australian section.
-      </a>
-    </li>
-	<li>
-      <a href="https://github.com/ryanmonro/george/" target="_blank">
-        Inspired greatly by Ryan Monro's 1194online project which uses the voice of Richard Peach from the 1990 electronic replacement.
-      </a>
-  </ul>
-</div>
-
+  <!-- Info-card remains unchanged -->
+  <div class="info-card">
+    <h2>About the clock</h2>
+    <div class="info-meta" aria-hidden="true"></div>
+    <p class="lead">
+      This is a recreation of the original Australian Postmaster General talking clock, often colloquially known as '<i>George</i>' but officially the
+      <b>Speaking Clock MK II</b> designed by the British Post Office Engineering Department and manufactured by the Telephone Manufacturing Company Ltd, London.
+    </p>
+    <div class="figure">
+      <img src="Speakingclock.jfif" alt="PMG Speaking Clock machine">
+      <div class="figcaption">Image of the mechanical speaking clock — from Wikipedia</div>
+    </div>
+    <p>
+      It was shipped to Australia in 1954 and in November of that year the transition was made from human operators who had been announcing the time manually in 30 minute shifts.
+      These machines continued to operate 24 hours a day, 7 days a week until thier replacement by a digital equivalent on September 12, 1990.
+      The time service was permanently ended on October 1st, 2019.
+    </p>
+    <div class="hr-dots" aria-hidden="true">* * *</div>
+    <div class="info-section-title">Information regarding the collection of the recordings and a fault with the source audio:</div>
+    <blockquote>
+      These recordings were made from the prototype speaking clock machine, held by the London Science Museum. The original machine stores the audio on glass disks, in a seies of concentric tracks of varying brightness. Much like how audio is stored on cine film.
+      <br><br>
+      The Minutes disk is slightly off-centre, and at some points on the disk the sensor picks up some of the adjacent track. In most cases this bleed through is inaudible, but it is prominent on some recordings. Most notably on the nine.
+      <br><br>
+      <i>From <a href="https://github.com/paulseward/asterisk-tim/" target="_blank">paulseward/asterisk-tim</a></i>
+    </blockquote>
+    <div class="hr-dots" aria-hidden="true">* * *</div>
+    <p>
+      A very special thankyou to
+      <a href="https://github.com/paulseward/" target="_blank">github.com/paulseward</a>
+      whose recordings for their
+      <a href="https://github.com/paulseward/asterisk-tim/" target="_blank">asterisk-tim</a>
+      formed the basis of this project and are an important historical record.
+    </p>
+    <ul class="info-links">
+      <li>
+        <a href="https://www.nfsa.gov.au/media/oembed?url=https%3A//vimeo.com/1035828268%3Fshare%3Dcopy%23t%3D0&max_width=760&max_height=426&hash=mktvY7PVODJS4VahZiSg1XJBXMtrZEnDuyDJJ38LZf0" target="_blank">
+          A 5 minute film from 1955 about the installation of the new clock, hosted by the Australian National Film and Sound Achive
+        </a>
+      </li>
+      <li>
+        <a href="https://collection.sciencemuseumgroup.org.uk/objects/co33313/speaking-clock-prototype-mk-ii-speaking-clock" target="_blank">
+          The London Science Museum page about the exact machine these recordings were made from.
+        </a>
+      </li>
+      <li>
+        <a href="https://en.wikipedia.org/wiki/Speaking_clock#Australia" target="_blank">
+          Wikipedia page about the speaking clocks, link goes directly to Australian section.
+        </a>
+      </li>
+      <li>
+        <a href="https://github.com/ryanmonro/george/" target="_blank">
+          Inspired greatly by Ryan Monro's 1194online project which uses the voice of Richard Peach from the 1990 electronic replacement.
+        </a>
+      </li>
+    </ul>
+  </div>
 
   <script>
   const $ = (s)=>document.querySelector(s);
   function log(msg){ const el=$('#log'); const t=new Date().toLocaleTimeString(); el.textContent += `[${t}] ${msg}\n`; el.scrollTop = el.scrollHeight; }
+
+  // Live clock updater
+  function updateClock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    const s = String(now.getSeconds()).padStart(2, '0');
+    $('#liveClock').textContent = `${h}:${m}:${s}`;
+  }
+  setInterval(updateClock, 1000);
+  window.addEventListener('load', updateClock);
 
   let ctx;
   let buffers = new Map();
@@ -198,6 +213,9 @@ blockquote {
   const BASE_PATH = './gordon_gow/';
   const INTERVAL = 10;   // always 10 seconds
   const GAP_MS   = 120;  // fixed spacing between clips
+
+  // ▶︎ Calibration: start this many seconds early so the pips land on the boundary
+  const AUDIO_LEAD_SEC = -1.0; // tweak to taste (e.g., 0.8–1.2 if needed)
 
   const FILES = {
     preamble: 'at_the_third_stroke.wav',
@@ -310,8 +328,11 @@ blockquote {
       startDelay = deltaToBoundary - totalDur;
     }
 
+    // Apply calibration lead so playback finishes right on the boundary
+    startDelay -= AUDIO_LEAD_SEC;
+
     const when = ctx.currentTime + Math.max(0, startDelay);
-    log(`Scheduling: ${target.toLocaleTimeString()} — starts in ${Math.max(0, startDelay).toFixed(2)}s — ${seq.join(' , ')}`);
+    log(`Scheduling: ${target.toLocaleTimeString()} — starts in ${Math.max(0, startDelay).toFixed(2)}s (lead ${AUDIO_LEAD_SEC}s) — ${seq.join(' , ')}`);
     await playSequenceAt(when, seq);
   }
 
