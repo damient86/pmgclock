@@ -18,7 +18,9 @@
     details.log-container { margin-top: 16px; text-align: left; }
     details summary { cursor: pointer; font-size: 14px; color: #6b7280; margin-bottom: 8px; }
     .log { background: #0b1020; color: #c9d1d9; padding: 10px 12px; border-radius: 10px; height: 200px; overflow: auto; font-size: 12px; }
-   .card video {
+
+    /* Responsive video inside card */
+    .card video {
       display: block;
       width: 100%;
       max-width: 100%;
@@ -27,108 +29,41 @@
     }
 
     .info-card {
-  max-width: 720px;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 20px 22px;
-  background: #f3f4f6;
-  margin-top: 24px;
-}
-
-.info-card h2 {
-  margin: 0 0 10px;
-  font-size: 20px;
-  text-align: center;
-}
-
-.info-meta {
-  margin: 6px auto 18px;
-  width: 100%;
-  max-width: 420px;
-  height: 1px;
-  background: linear-gradient(to right, transparent, #d1d5db, transparent);
-}
-
-.info-card .lead {
-  margin: 12px 0 16px;
-}
-
-.info-section-title {
-  font-weight: 600;
-  margin: 16px 0 8px;
-}
-
-.hr-dots {
-  margin: 16px 0;
-  text-align: center;
-  letter-spacing: 0.35em;
-  color: #9ca3af;
-}
-
-blockquote {
-  margin: 8px 0 16px;
-  padding: 12px 14px;
-  background: #ffffffbf;
-  border-left: 4px solid #cbd5e1;
-  border-radius: 8px;
-  font-style: normal;
-}
-
-.info-links {
-  list-style: none;
-  padding: 0;
-  margin: 8px 0 0;
-}
-
-.info-links li {
-  margin: 10px 0;
-}
-
-.info-links a {
-  text-decoration: none;
-  border-bottom: 1px dashed #6b7280;
-}
-
-.info-links a:hover {
-  border-bottom-style: solid;
-}
-.info-card img {
-  display: block;
-  max-width: 100%;
-  height: auto;
-  margin: 16px auto;
-  border-radius: 8px;
-}
-.figure {
-  text-align: center;
-  margin: 16px auto;
-}
-
-.figure img {
-  display: inline-block;
-  max-width: 100%;
-  height: auto;
-  border-radius: 8px;
-}
-
-.figcaption {
-  font-size: 13px;
-  color: #6b7280; /* muted grey */
-  margin-top: 6px;
-  font-style: italic;
-}
+      max-width: 720px;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 20px 22px;
+      background: #f3f4f6;
+      margin-top: 24px;
+    }
+    .info-card h2 { margin: 0 0 10px; font-size: 20px; text-align: center; }
+    .info-meta { margin: 6px auto 18px; width: 100%; max-width: 420px; height: 1px; background: linear-gradient(to right, transparent, #d1d5db, transparent); }
+    .info-card .lead { margin: 12px 0 16px; }
+    .info-section-title { font-weight: 600; margin: 16px 0 8px; }
+    .hr-dots { margin: 16px 0; text-align: center; letter-spacing: 0.35em; color: #9ca3af; }
+    blockquote { margin: 8px 0 16px; padding: 12px 14px; background: #ffffffbf; border-left: 4px solid #cbd5e1; border-radius: 8px; font-style: normal; }
+    .info-links { list-style: none; padding: 0; margin: 8px 0 0; }
+    .info-links li { margin: 10px 0; }
+    .info-links a { text-decoration: none; border-bottom: 1px dashed #6b7280; }
+    .info-links a:hover { border-bottom-style: solid; }
+    .info-card img { display: block; max-width: 100%; height: auto; margin: 16px auto; border-radius: 8px; }
+    .figure { text-align: center; margin: 16px auto; }
+    .figure img { display: inline-block; max-width: 100%; height: auto; border-radius: 8px; }
+    .figcaption { font-size: 13px; color: #6b7280; margin-top: 6px; font-style: italic; }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>PMG Talking Clock</h1>
     <p class="muted">This is a recreation of the original PMG talking clock used in Australia between 1954 and 1990 which featured the voice of Gordon Gow optically reproduced from glass disks.</p>
-<p>
-  <video autoplay loop muted playsinline>
-    <source src="disk.webm" type="video/webm">
-  </video>
-</p>
 
+    <p>
+      <!-- sync.webm will be restarted exactly at each announcement start -->
+      <video id="syncVideo" autoplay muted playsinline preload="auto">
+        <source src="sync.webm" type="video/webm">
+      </video>
+    </p>
+<p class="muted">Video will synchronise when audio is playing.</p>
     <!-- Live Clock -->
     <div id="liveClock"></div>
 
@@ -137,8 +72,10 @@ blockquote {
       <button id="stopBtn" disabled>Stop</button>
       <button id="onceBtn" disabled>Say once now</button>
     </div>
-<p class="muted">Audio files can take a few moments to load, controls will become available when audio has been downloaded.</p>
-<p class="muted">After start button is pressed, announcement will begin at the start of the next full 10 second block.</p>
+
+    <p class="muted">Audio files can take a few moments to load, controls will become available when audio has been downloaded.</p>
+    <p class="muted">After start button is pressed, announcement will begin at the start of the next full 10 second block.</p>
+
     <!-- Collapsible log -->
     <details class="log-container">
       <summary>Click to expand log</summary>
@@ -146,7 +83,7 @@ blockquote {
     </details>
   </div>
 
-  <!-- Info-card remains unchanged -->
+  <!-- Info card (unchanged) -->
   <div class="info-card">
     <h2>About the clock</h2>
     <div class="info-meta" aria-hidden="true"></div>
@@ -159,12 +96,13 @@ blockquote {
       <div class="figcaption">Image of the mechanical speaking clock — from Wikipedia</div>
     </div>
     <p>
-    It was shipped to Australia in 1954 and in November of that year the transition was made from human operators who up until that point had been announcing the
-     time manually in 30 minute shifts. These machines continued to operate 24 hours a day, 7 days a week until thier replacement by a digital equivalent with new
+      It was shipped to Australia in 1954 and in November of that year the transition was made from human operators who up until that point had been announcing the
+      time manually in 30 minute shifts. These machines continued to operate 24 hours a day, 7 days a week until thier replacement by a digital equivalent with new
       recordings by ABC presenter Richard Peach on September 12, 1990. The Telstra time service was ended permanently just before midnight on October 1st, 2019.
     </p>
     <center>
-    <p><a href="https://1194online.com/" target="_blank">Click here to visit 1194online</a><br>A site which recreates the 1990 electronic replacement.</p></center>
+      <p><a href="https://1194online.com/" target="_blank">Click here to visit 1194online</a><br>A site which recreates the 1990 electronic replacement.</p>
+    </center>
     <div class="hr-dots" aria-hidden="true">* * *</div>
     <div class="info-section-title">Information regarding the collection of the recordings and a fault with the source audio:</div>
     <blockquote>
@@ -200,14 +138,18 @@ blockquote {
       </li>
       <li>
         Inspired greatly by the <a href="https://github.com/ryanmonro/george/" target="_blank">ryanmonro/george</a> repo, available as <a href="https://1194online.com/" target="_blank">1194online.com</a> which recreates the 1990 electronic replacement with the voice of Richard Peach.
-        </a>
       </li>
     </ul>
   </div>
 
   <script>
   const $ = (s)=>document.querySelector(s);
-  function log(msg){ const el=$('#log'); const t=new Date().toLocaleTimeString(); el.textContent += `[${t}] ${msg}\n`; el.scrollTop = el.scrollHeight; }
+  function log(msg){
+    const el=$('#log');
+    const t=new Date().toLocaleTimeString();
+    el.textContent += `[${t}] ${msg}\n`;
+    el.scrollTop = el.scrollHeight;
+  }
 
   // Live clock updater
   function updateClock() {
@@ -230,7 +172,7 @@ blockquote {
   const GAP_MS   = 120;  // fixed spacing between clips
 
   // ▶︎ Calibration: start this many seconds early so the pips land on the boundary
-  const AUDIO_LEAD_SEC = -1.0; // tweak to taste (e.g., 0.8–1.2 if needed)
+  const AUDIO_LEAD_SEC = -1.0; // tweak to taste
 
   const FILES = {
     preamble: 'at_the_third_stroke.wav',
@@ -305,6 +247,25 @@ blockquote {
     return seq;
   }
 
+  // --- VIDEO SYNC: restart the video exactly when the announcement starts ---
+  function syncVideoAt(whenCtxTime){
+    const vid = document.getElementById('syncVideo');
+    if(!vid || !ctx) return;
+    const delayMs = Math.max(0, (whenCtxTime - ctx.currentTime) * 1000);
+    window.setTimeout(() => {
+      try {
+        vid.pause();
+        vid.currentTime = 0;
+        // Ensure autoplay can proceed on mobile: keep muted + playsinline on the element
+        const p = vid.play();
+        if (p && typeof p.catch === 'function') {
+          p.catch(()=>{/* ignore autoplay race conditions */});
+        }
+      } catch(e) { /* no-op */ }
+    }, delayMs);
+    log(`Video re-sync scheduled in ${(delayMs/1000).toFixed(2)}s`);
+  }
+
   async function playSequenceAt(when, relList){
     let t = when;
     for(const rel of relList){
@@ -348,6 +309,10 @@ blockquote {
 
     const when = ctx.currentTime + Math.max(0, startDelay);
     log(`Scheduling: ${target.toLocaleTimeString()} — starts in ${Math.max(0, startDelay).toFixed(2)}s (lead ${AUDIO_LEAD_SEC}s) — ${seq.join(' , ')}`);
+
+    // ⏱ Sync video to the exact start of this announcement block
+    syncVideoAt(when);
+
     await playSequenceAt(when, seq);
   }
 
