@@ -24,7 +24,7 @@ let playing = false;
 
 const BASE_PATH = './gordon_gow/';
 const INTERVAL = 10;   // always 10 seconds
-const GAP_MS   = 120;  // fixed spacing between clips
+const GAP_MS   = 0;  // fixed spacing between clips
 
 // ▶︎ Calibration: start this many seconds early so the pips land on the boundary
 const AUDIO_LEAD_SEC = -1.0; // tweak to taste
@@ -129,7 +129,7 @@ async function playSequenceAt(when, relList){
     src.buffer = buf;
     src.connect(ctx.destination);
     src.start(t);
-    t += buf.duration + (GAP_MS/1000);
+    t += buf.duration;
   }
   return t;
 }
