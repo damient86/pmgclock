@@ -36,6 +36,7 @@
       background: #f3f4f6;
       margin-top: 24px;
     }
+    .oncebutton { display:none}
     .info-card h2 { margin: 0 0 10px; font-size: 20px; text-align: center; }
     .info-meta { margin: 6px auto 18px; width: 100%; max-width: 420px; height: 1px; background: linear-gradient(to right, transparent, #d1d5db, transparent); }
     .info-card .lead { margin: 12px 0 16px; }
@@ -71,7 +72,9 @@
     <div class="row">
       <button id="startBtn" disabled>Start</button>
       <button id="stopBtn" disabled>Stop</button>
-     <!--  <button id="onceBtn" disabled>Say once now</button> no longer wanted-->
+      <div class="oncebutton">
+      <button id="onceBtn" disabled>Say once now</button>
+      </div>
     </div>
 
     <p class="muted">Audio files can take a few moments to load, controls will become available when audio has been downloaded.</p>
@@ -149,4 +152,5 @@
   
 </body>
 </html>
+
 
