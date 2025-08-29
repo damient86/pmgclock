@@ -1,193 +1,291 @@
-const $ = (s)=>document.querySelector(s);
-function log(msg){
-  const el=$('#log');
-  const t=new Date().toLocaleTimeString();
-  el.textContent += `[${t}] ${msg}\n`;
-  el.scrollTop = el.scrollHeight;
-}
+// clock.js — PMG Talking Clock upgrade to an audio sprite-based approach to
+// try and sidestep some quirks with loading 80 tiny audio files before launch
+// this version includes some tactics to deal with browser audio autoplay limitations.
 
-// Live clock updater
-function updateClock() {
-  const now = new Date();
-  const h = String(now.getHours()).padStart(2, '0');
-  const m = String(now.getMinutes()).padStart(2, '0');
-  const s = String(now.getSeconds()).padStart(2, '0');
-  $('#liveClock').textContent = `${h}:${m}:${s}`;
-}
-setInterval(updateClock, 1000);
-window.addEventListener('load', updateClock);
+// ─────────────────────────────────────────────────────────────────────────────
+// Config
+// ─────────────────────────────────────────────────────────────────────────────
+const SPRITE_URL   = 'clock_sprite.wav';        // approx ~10mb wav has h
+// approx ~10mb wav
+// PCM wav chosen over compressed audio to ensure timing remains exact
+const MANIFEST_URL = 'manifest.json';
 
-let ctx;
-let buffers = new Map();
-let ticker = null;
-let playing = false;
+// How often to tick the scheduler
+const SCHED_TICK_MS = 100; // 10 Hz
+// Minimum lead time (s) we try to have before a boundary when scheduling
+const MIN_LEAD_S = 0.2;
 
-const BASE_PATH = './gordon_gow/';
-const INTERVAL = 10;   // always 10 seconds
-const GAP_MS   = 0;  // fixed spacing between clips
+// ─────────────────────────────────────────────────────────────────────────────
+// Globals
+// ─────────────────────────────────────────────────────────────────────────────
+let ctx = null;
+let spriteBuffer = null;
+let manifest = null;
 
-// ▶︎ Calibration: start this many seconds early so the pips land on the boundary
-const AUDIO_LEAD_SEC = -1.0; // tweak to taste
+let unlocked = false;
+let started  = false;
+let lastScheduledBoundary = null; // epoch seconds (wall-clock) of last scheduled boundary
 
-const FILES = {
-  preamble: 'at_the_third_stroke.wav',
-  hours: Array.from({length:12}, (_,i)=>`hour_${String(i+1).padStart(2,'0')}.wav`),
-  minutes: [ 'oclock.wav', ...Array.from({length:59}, (_,i)=>`${String(i+1).padStart(2,'0')}.wav`) ],
-  seconds: {
-    0: 'precisely.wav',
-    10: 'and_10_seconds.wav',
-    20: 'and_20_seconds.wav',
-    30: 'and_30_seconds.wav',
-    40: 'and_40_seconds.wav',
-    50: 'and_50_seconds.wav'
-  },
-  pips: 'pips.wav'
-};
-
-function allNeededFiles(){
-  return Array.from(new Set([FILES.preamble, ...FILES.hours, ...FILES.minutes, ...Object.values(FILES.seconds), FILES.pips]));
-}
-
-async function fetchBuffer(url){
-  const res = await fetch(url);
-  if(!res.ok) throw new Error(`Fetch failed: ${url}`);
-  const ab = await res.arrayBuffer();
-  return await ctx.decodeAudioData(ab.slice(0));
-}
-
-async function load(relPath){
-  if(buffers.has(relPath)) return buffers.get(relPath);
-  const buf = await fetchBuffer(BASE_PATH+relPath);
-  buffers.set(relPath, buf);
-  return buf;
-}
-
-async function preloadAll(){
-  ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
-  buffers.clear();
-  const files = allNeededFiles();
-  log(`Preloading ${files.length} files from ${BASE_PATH}`);
-  for(const f of files){
-    try { await load(f); log(`✓ ${f}`); }
-    catch(e){ log(`✗ ${f} — ${e.message}`); }
-  }
-  $('#startBtn').disabled = false;
-  $('#onceBtn').disabled = false;
-}
-
-function nextAlignedDate(interval){
-  const now = new Date();
-  const s = Math.floor(now.getSeconds() / interval) * interval + interval;
-  const next = new Date(now.getTime());
-  next.setSeconds(s, 0);
-  if(next <= now) next.setSeconds(s + interval, 0);
-  return next;
-}
-
-function toHour12(h){ const hh = h % 12; return hh === 0 ? 12 : hh; }
-
-function buildSequence(target){
-  const seq = [];
-  seq.push(FILES.preamble);
-  const hour = toHour12(target.getHours());
-  seq.push(`hour_${String(hour).padStart(2,'0')}.wav`);
-  const minute = target.getMinutes();
-  if(minute === 0){ seq.push('oclock.wav'); }
-  else { seq.push(`${String(minute).padStart(2,'0')}.wav`); }
-  const s = target.getSeconds();
-  const secMap = FILES.seconds;
-  if(s === 0 && secMap[0]) seq.push(secMap[0]);
-  else if(secMap[s]) seq.push(secMap[s]);
-  seq.push(FILES.pips);
-  return seq;
-}
-
-// --- VIDEO SYNC: restart the video exactly when the announcement starts ---
-function syncVideoAt(whenCtxTime){
-  const vid = document.getElementById('syncVideo');
-  if(!vid || !ctx) return;
-  const delayMs = Math.max(0, (whenCtxTime - ctx.currentTime) * 1000);
-  window.setTimeout(() => {
-    try {
-      vid.pause();
-      vid.currentTime = 0;
-      // Ensure autoplay can proceed on mobile: keep muted + playsinline on the element
-      const p = vid.play();
-      if (p && typeof p.catch === 'function') {
-        p.catch(()=>{/* ignore autoplay race conditions */});
-      }
-    } catch(e) { /* no-op */ }
-  }, delayMs);
-  log(`Video re-sync scheduled in ${(delayMs/1000).toFixed(2)}s`);
-}
-
-async function playSequenceAt(when, relList){
-  let t = when;
-  for(const rel of relList){
-    const buf = await load(rel);
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.connect(ctx.destination);
-    src.start(t);
-    t += buf.duration;
-  }
-  return t;
-}
-
-async function scheduleOne(interval){
-  let target = nextAlignedDate(interval);
-  let seq = buildSequence(target);
-
-  let totalDur = 0;
-  for (const rel of seq) {
-    const buf = await load(rel);
-    totalDur += buf.duration + (GAP_MS/1000);
-  }
-
-  let deltaToBoundary = (target.getTime() - Date.now()) / 1000;
-  let startDelay = deltaToBoundary - totalDur;
-
-  if (startDelay < 0) {
-    target = new Date(target.getTime() + interval * 1000);
-    seq = buildSequence(target);
-    totalDur = 0;
-    for (const rel of seq) {
-      const buf = await load(rel);
-      totalDur += buf.duration + (GAP_MS/1000);
+// Simple logger (writes to the log window on the main page - verbosity of log greatly
+// reduced over previous versions - enough to diagnose autoplay issues...
+function log(...args) {
+  try {
+    const el = document.getElementById('log');
+    if (el) {
+      const line = `[${new Date().toLocaleTimeString()}] ${args.join(' ')}`;
+      el.textContent += line + '\n';
+      el.scrollTop = el.scrollHeight;
     }
-    deltaToBoundary = (target.getTime() - Date.now()) / 1000;
-    startDelay = deltaToBoundary - totalDur;
+  } catch {}
+  // console always
+  console.log('[clock]', ...args);
+}
+
+// Live clock (safe if #liveClock not present)
+(function ensureLiveClock() {
+  const el = document.getElementById('liveClock');
+  if (!el) return;
+  const fmt = () => {
+    const d = new Date();
+    el.textContent = d.toLocaleTimeString();
+  };
+  fmt();
+  setInterval(fmt, 500);
+})();
+
+// ─────────────────────────────────────────────────────────────────────────────
+function dBtoLinear(db) { return Math.pow(10, db / 20); }
+
+function getEntry(label) {
+  const e = manifest[label];
+  if (!e) {
+    log('Missing label:', label);
+  }
+  return e;
+}
+
+function entryDur(label) {
+  const e = getEntry(label);
+  return e ? e[1] : 0;
+}
+
+function seqDuration(labels) {
+  return labels.reduce((sum, l) => sum + entryDur(l), 0);
+}
+
+function makeSource(label, whenCtxTime, gainDb = 0) {
+  const e = getEntry(label);
+  if (!e) return null;
+  const [offset, dur] = e;
+
+  const src = ctx.createBufferSource();
+  src.buffer = spriteBuffer;
+
+  const gain = ctx.createGain();
+  gain.gain.value = dBtoLinear(gainDb);
+
+  src.connect(gain).connect(ctx.destination);
+  src.start(whenCtxTime, offset, dur);
+  return src;
+}
+
+// Pull the synchronised clock video back to
+// the start frame when then announcement restarts
+function restartSyncVideo() {
+  const v = document.getElementById('syncVideo');
+  if (!v) return;
+  try { v.currentTime = 0; } catch(_) {}
+  const p = v.play();
+  if (p && typeof p.catch === 'function') p.catch(() => {});
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Label mapping — see manifest.json
+// minutes "01".."59"; hour "hour_01".."hour_12"; seconds phrase; plus pips.
+// ─────────────────────────────────────────────────────────────────────────────
+function labelMinute(m) {
+  // minutes 1 to 59 as "01" - "59"
+  // on the hour "oclock" will be used
+  return String(m).padStart(2, '0');
+}
+
+function labelHour12(h24) {
+  const h12 = ((h24 + 11) % 12) + 1; // 0->12, 13->1, etc.
+  return `hour_${String(h12).padStart(2, '0')}`;
+}
+
+function labelSecondsPhrase(s) {
+  // 0 => precisely; otherwise and_10_seconds / 20 / 30 / 40 / 50
+  if (s === 0) return 'precisely';
+  return `and_${String(s).padStart(2, '0')}_seconds`;
+}
+
+// Build the announcement sequence for the NEXT boundary
+function buildAnnouncementLabels(nextDate) {
+  const h = nextDate.getHours();
+  const m = nextDate.getMinutes();
+  const s = nextDate.getSeconds(); // should be 0/10/20/30/40/50
+
+  const labels = [];
+  labels.push('at_the_third_stroke');  // intro
+  labels.push(labelHour12(h));         // hour
+
+  if (m === 0) {
+    labels.push('oclock');
+  } else {
+    labels.push(labelMinute(m));
   }
 
-  // Apply calibration lead so playback finishes right on the boundary
-  startDelay -= AUDIO_LEAD_SEC;
+  labels.push(labelSecondsPhrase(s));  // precisely / and NN seconds
+  labels.push('pips');                 // three beeps
 
-  const when = ctx.currentTime + Math.max(0, startDelay);
-  log(`Scheduling: ${target.toLocaleTimeString()} — starts in ${Math.max(0, startDelay).toFixed(2)}s (lead ${AUDIO_LEAD_SEC}s) — ${seq.join(' , ')}`);
-
-  // ⏱ Sync video to the exact start of this announcement block
-  syncVideoAt(when);
-
-  await playSequenceAt(when, seq);
+  return labels;
 }
 
-async function sayOnceNow(){ await scheduleOne(INTERVAL); }
+// Timing schedule constructed so that the final pips should lands
+// directly on the boundary - the end of the 10 second block.
+function scheduleAnnouncementForBoundary(nextBoundaryWallSec) {
+  const nextDate = new Date(nextBoundaryWallSec * 1000);
+  const labels = buildAnnouncementLabels(nextDate);
+  const totalDur = seqDuration(labels);
 
-async function start(){
-  if(playing) return; playing = true;
-  $('#startBtn').disabled = true; $('#stopBtn').disabled = false; $('#onceBtn').disabled = true;
-  await scheduleOne(INTERVAL);
-  ticker = setInterval(()=>scheduleOne(INTERVAL), INTERVAL*1000);
+  const nowWall = Date.now() / 1000;
+  const wallSecondsUntilBoundary = nextBoundaryWallSec - nowWall;
+
+  //const whenCtxStart = ctx.currentTime + Math.max(0, wallSecondsUntilBoundary - totalDur);
+  //FINE ADJUSTMENT FOR TIMING -- WORKS ON MY PC...?
+const whenCtxStart = ctx.currentTime + Math.max(0, (wallSecondsUntilBoundary + 0.5) - totalDur);
+
+  log('Scheduling boundary', new Date(nextBoundaryWallSec * 1000).toLocaleTimeString(),
+      `in ${ (whenCtxStart - ctx.currentTime).toFixed(3) }s, block len ${ totalDur.toFixed(3) }s`);
+
+  let t = whenCtxStart;
+  const gainDb = 0; // master trim if needed
+  for (const label of labels) {
+    const e = getEntry(label);
+    if (!e) continue;
+    const dur = e[1];
+    makeSource(label, t, gainDb);
+    t += dur;
+  }
+
+  restartSyncVideo();
+  lastScheduledBoundary = nextBoundaryWallSec;
 }
 
-function stop(){
-  if(!playing) return; playing = false;
-  $('#startBtn').disabled = false; $('#stopBtn').disabled = true; $('#onceBtn').disabled = false;
-  if(ticker){ clearInterval(ticker); ticker = null; }
+// ─────────────────────────────────────────────────────────────────────────────
+// Loading & unlock
+// ─────────────────────────────────────────────────────────────────────────────
+async function initAudioContext() {
+  if (ctx) return ctx;
+  ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+
+  // 1-sample silent blip unlock (helps in iframes/iOS)
+  const silentBuf = ctx.createBuffer(1, 1, ctx.sampleRate);
+  const src = ctx.createBufferSource();
+  src.buffer = silentBuf;
+  src.connect(ctx.destination);
+  try { src.start(0); } catch(_) {}
+  try { await ctx.resume(); } catch(_) {}
+
+  log('AudioContext state:', ctx.state);
+  return ctx;
 }
 
-$('#startBtn').addEventListener('click', start);
-$('#stopBtn').addEventListener('click', stop);
-$('#onceBtn').addEventListener('click', sayOnceNow);
+async function loadSpriteAndManifest() {
+  // Assumes ctx already created by initAudioContext()
+  const [audioArrBuf, manifestJson] = await Promise.all([
+    fetch(SPRITE_URL).then(r => {
+      if (!r.ok) throw new Error(`Failed to fetch ${SPRITE_URL}: ${r.status}`);
+      return r.arrayBuffer();
+    }),
+    fetch(MANIFEST_URL).then(r => {
+      if (!r.ok) throw new Error(`Failed to fetch ${MANIFEST_URL}: ${r.status}`);
+      return r.json();
+    }),
+  ]);
+  spriteBuffer = await ctx.decodeAudioData(audioArrBuf);
+  manifest = manifestJson;
+  log('Sprite & manifest loaded');
+}
 
-window.addEventListener('load', preloadAll);
+async function startAfterUnlock() {
+  if (started) return;
+  started = true;
+  await loadSpriteAndManifest();
+  schedulerLoop(); // kick the scheduler
+}
+
+function attachUnlockOnce() {
+  const handler = async () => {
+    try {
+      await initAudioContext();
+      unlocked = true;
+      detach();
+      await startAfterUnlock();
+    } catch (e) {
+      console.error('Unlock/start failed:', e);
+      log('Unlock/start failed:', e.message || e);
+    }
+  };
+
+  const detach = () => {
+    ['pointerdown','click','keydown','touchstart','mousedown','mouseup']
+      .forEach(ev => window.removeEventListener(ev, handler, {capture:true}));
+    document.removeEventListener('visibilitychange', visHandler);
+  };
+
+  const visHandler = async () => {
+    if (document.visibilityState === 'visible' && !unlocked) {
+      await handler();
+    }
+  };
+
+  ['pointerdown','click','keydown','touchstart','mousedown','mouseup']
+    .forEach(ev => window.addEventListener(ev, handler, {once:true, capture:true}));
+  document.addEventListener('visibilitychange', visHandler);
+
+  log('Waiting for first user gesture to start audio…');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Scheduler loop
+// ─────────────────────────────────────────────────────────────────────────────
+function schedulerLoop() {
+  if (!started || !spriteBuffer || !manifest) return;
+
+  const nowWall = Date.now() / 1000;
+  const nextBoundary = Math.ceil(nowWall / 10) * 10;
+
+  // Build labels to know total duration (for back-timing)
+  const labels = buildAnnouncementLabels(new Date(nextBoundary * 1000));
+  const totalDur = seqDuration(labels);
+
+  const timeUntil = nextBoundary - nowWall;
+
+  // Decide which boundary to target:
+  // If we don't have enough runway to back-time cleanly, use the FOLLOWING boundary
+  // this should stop an announcement block from playing as soon as audio is ready
+  // which will not only be incorrect but will also overlap into the next announcement
+  // and sound like trash
+  const targetBoundary =
+    (timeUntil < totalDur + MIN_LEAD_S) ? (nextBoundary + 10) : nextBoundary;
+
+  // Only schedule each boundary once
+  if (lastScheduledBoundary !== targetBoundary) {
+    scheduleAnnouncementForBoundary(targetBoundary);
+  }
+
+  setTimeout(schedulerLoop, SCHED_TICK_MS);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Page lifecycle helpers (resume audio on focus/pageshow)
+// ─────────────────────────────────────────────────────────────────────────────
+window.addEventListener('focus',  () => { if (ctx && ctx.state !== 'running') ctx.resume(); });
+window.addEventListener('pageshow',() => { if (ctx && ctx.state !== 'running') ctx.resume(); });
+
+// Start: DO NOT create/resume AudioContext here. Wait for gesture.
+window.addEventListener('load', () => {
+  attachUnlockOnce();
+});

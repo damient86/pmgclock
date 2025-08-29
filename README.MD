@@ -1,7 +1,23 @@
+PMG Clock
+============
+Web simulation of the original Australian PMG talking clock machine.
+
+Technical
+------
+How does it work?
+
+* T
+* B
+* C
+
+Historical Context
+------
 This is a recreation of the original Australian Postmaster General's talking clock, often colloquially known as 'George' but officially the Speaking Clock MK II designed by the British Post Office Engineering Department and manufactured by the Telephone Manufacturing Company Ltd, London.
 
 It was shipped to Australia in 1954 and in November of that year the transition was made from human operators who up until that point had been announcing the time manually in 30 minute shifts. These machines continued to operate 24 hours a day, 7 days a week until thier replacement by a digital equivalent with new recordings by ABC presenter Richard Peach on September 12, 1990. The Telstra time service was ended permanently just before midnight on October 1st, 2019.
 
+Acknowledgments
+------
 A very special thankyou to [github.com/paulseward](https://github.com/paulseward) whose recordings of the Gordon Gow disks installed in the prototype machine in the London Science Museum for their [asterisk-tim](https://github.com/paulseward/asterisk-tim) formed the basis of this project and are of themselves an important historical record.
 
 Inspired greatly by Ryan Monro's [george](https://github.com/ryanmonro/george) repo, available as [1194online.com](https://1194online.com/) which recreates the 1990 electronic replacement with the voice of Richard Peach.

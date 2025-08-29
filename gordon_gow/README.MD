@@ -1,0 +1,1 @@
+Each audio file has been normalised in Audacity to amplify the volume.

@@ -1,3 +1,4 @@
+<!--PMG Clock web application - Damien Taylor-->
 <!doctype html>
 <html lang="en">
 <head>
@@ -6,11 +7,12 @@
   <link rel="icon" href="favicon.ico" type="image/x-icon">
   <title>PMG Talking Clock</title>
   <style>
+    /* css junkyard - sorry */
     :root { --gap: 12px; }
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, sans-serif; margin: 24px; }
     .card { max-width: 600px; border: 1px solid #e5e7eb; border-radius: 16px; padding: 20px; box-shadow: 0 6px 24px rgba(0,0,0,.06); text-align: center; }
     h1 { margin: 0 0 12px; font-size: 20px; text-align: center; }
-    .row { display: flex; justify-content: center; gap: var(--gap); align-items: center; margin: 10px 0; }
+    .row { display: none !important; } /* decided to hide the controls entirely, they are now redundant */
     button { padding: 10px 14px; border-radius: 10px; border: 1px solid #111827; background: #fff; cursor: pointer; }
     button[disabled] { opacity: .5; cursor: not-allowed; }
     .muted { color: #6b7280; font-size: 14px; margin-bottom: 12px; }
@@ -18,25 +20,8 @@
     details.log-container { margin-top: 16px; text-align: left; }
     details summary { cursor: pointer; font-size: 14px; color: #6b7280; margin-bottom: 8px; }
     .log { background: #0b1020; color: #c9d1d9; padding: 10px 12px; border-radius: 10px; height: 200px; overflow: auto; font-size: 12px; }
-
-    /* Responsive video inside card */
-    .card video {
-      display: block;
-      width: 100%;
-      max-width: 100%;
-      height: auto;
-      border-radius: 8px;
-    }
-
-    .info-card {
-      max-width: 720px;
-      border: 1px solid #e5e7eb;
-      border-radius: 16px;
-      padding: 20px 22px;
-      background: #f3f4f6;
-      margin-top: 24px;
-    }
-    .oncebutton { display:none}
+    .card video { display: block; width: 100%; max-width: 100%; height: auto; border-radius: 8px; }
+    .info-card {max-width: 720px; border: 1px solid #e5e7eb; border-radius: 16px; padding: 20px 22px; background: #f3f4f6; margin-top: 24px; }
     .info-card h2 { margin: 0 0 10px; font-size: 20px; text-align: center; }
     .info-meta { margin: 6px auto 18px; width: 100%; max-width: 420px; height: 1px; background: linear-gradient(to right, transparent, #d1d5db, transparent); }
     .info-card .lead { margin: 12px 0 16px; }
@@ -59,26 +44,19 @@
     <p class="muted">This is a recreation of the original PMG talking clock used in Australia between 1954 and 1990 which featured the voice of Gordon Gow optically reproduced from glass disks.</p>
 
     <p>
-      <!-- sync.webm will be restarted exactly at each announcement start -->
+      <!-- sync.webm in media subdir will be restarted exactly at each announcement block start by clock.js -->
       <video id="syncVideo" autoplay muted playsinline preload="auto">
         <source src="media/sync.webm" type="video/webm">
       </video>
     </p>
-    <p class="muted">Video will synchronise when audio is playing.</p>
-
     <!-- Live Clock -->
     <div id="liveClock"></div>
 
-    <div class="row">
-      <button id="startBtn" disabled>Start</button>
-      <button id="stopBtn" disabled>Stop</button>
-      <div class="oncebutton">
-      <button id="onceBtn" disabled>Say once now</button>
-      </div>
-    </div>
-
-    <p class="muted">Audio files can take a few moments to load, controls will become available when audio has been downloaded.</p>
-    <p class="muted">After start button is pressed, announcement will begin at the start of the next full 10 second block.</p>
+    <!-- Redundant controls removed; autoplay should now be handled by clock.js -->
+   <button id="startButton">Click to start clock</button>
+   <!-- This button does absolutely nothing it is just a user interaction to comply with browser audio autoplay conventions -->
+    <!--<p class="muted">Click anywhere in the page if the audio does not start playing automatically.</p> -->
+    <p class="muted">Announcements will begin at the beginning of the next 10 second block.</p>
 
     <!-- Collapsible log -->
     <details class="log-container">
@@ -87,7 +65,7 @@
     </details>
   </div>
 
-  <!-- Info card (unchanged) -->
+  <!-- Info card - Historic information about the device, some links and shoutouts... -->
   <div class="info-card">
     <h2>About the clock</h2>
     <div class="info-meta" aria-hidden="true"></div>
@@ -146,11 +124,7 @@
     </ul>
   </div>
 
-  <!-- external JS -->
+  <!-- call the clock script -->
   <script src="clock.js"></script>
-
-  
 </body>
 </html>
-
-
